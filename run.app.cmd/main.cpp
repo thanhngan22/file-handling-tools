@@ -21,7 +21,7 @@ map<string, string> readFolder(string path)
             string filename = ent->d_name;
             if (filename.find(".lnk") != string::npos)
             {
-                result.emplace(filename.substr(0, filename.find(".lnk")), path + "\\" + filename);
+                result.emplace(filename.substr(0, filename.find(".lnk")), path);
             }
         }
         closedir(dir);
@@ -63,7 +63,7 @@ int main()
                     filename = ent->d_name;
                     if (filename.find(".lnk") != string::npos)
                     {
-                        locationAppStart.emplace(filename.substr(0, filename.find(".lnk")), listPaths[i] + "\\" + filename);
+                        locationAppStart.emplace(filename.substr(0, filename.find(".lnk")), listPaths[i]);
                     }
                     break;
                 }
@@ -103,66 +103,59 @@ int main()
     }
     else
     {
-        // // string command = "powershell.exe Start-Process powershell -Verb RunAs";
-        // string command = "powershell.exe -command \"Start-Process '" + path + "' -Verb RunAs\"";
-        // LPSTR pcmd = new char[command.size() + 1];
-        // strcpy(pcmd, command.c_str());
-
-        // STARTUPINFO si;
-        // PROCESS_INFORMATION pi;
-        // ZeroMemory(&si, sizeof(si));
-        // si.cb = sizeof(si);
-        // ZeroMemory(&pi, sizeof(pi));
-        // if (CreateProcess(NULL, pcmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-        // {
-        //     WaitForSingleObject(pi.hProcess, INFINITE);
-        //     CloseHandle(pi.hProcess);
-        //     CloseHandle(pi.hThread);
-        //     delete[] pcmd;
-        // }
-        // else
-        // {
-        //     printf("Error launching PowerShell cmdlet\n");
-        //     return 1;
-        // }
-
-        // // Tên lệnh PowerShell
-        // string powershell_cmd = "powershell";
-
-        // // Đường dẫn tới file shortcut Word
-        // string word_shortcut = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk";
-
-        // // Chuỗi lệnh PowerShell
-        // string ps_command = "start-process \"" + word_shortcut + "\"";
-
-        // // Chuyển đổi chuỗi lệnh sang kiểu LPWSTR
-        // LPSTR cmd = new char[ps_command.size() + 1];
-        // strcpy(cmd, ps_command.c_str());
-
-        // // Khởi tạo cấu trúc STARTUPINFO và PROCESS_INFORMATION
-        // STARTUPINFO si = {};
-        // PROCESS_INFORMATION pi = {};
-        // si.cb = sizeof(si);
 
 
-        // // Tạo tiến trình mới bằng hàm CreateProcess
-        // if (CreateProcess(powershell_cmd.c_str(), cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-        // {
-        //     // Đợi tiến trình con hoàn thành và giải phóng tài nguyên
-        //     WaitForSingleObject(pi.hProcess, INFINITE);
-        //     CloseHandle(pi.hProcess);
-        //     CloseHandle(pi.hThread);
-        // } else {
-        //     cout << "Error launching PowerShell cmdlet\n";
-        //     return 1;
-        // }
-        
-        // thuc hien lenh powershell de di chuyen den thu muc chua file .lnk
-        // system("powershell.exe -command \"start-process \\\"C:\\Users\\LENOVO\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk\\\"\"");
-        system("powershell.exe -command \"start-process \\\"C:\\Users\\LENOVO\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk\\\"\"");
 
-        // system("powershell.exe -command \"start-process \"C:\\Users\\LENOVO\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk\"\"");
+        system("powershell.exe -command \"explorer 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk'\"; ");
+
+        system("pause");
     }
 
     return 225;
 }
+
+
+
+/*
+
+        Đường dẫn tới file shortcut Word
+        string word_shortcut = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk";
+
+        Chuỗi lệnh PowerShell
+        string ps_command = "start-process \"" + word_shortcut + "\"";
+        string ps_command = "powershell.exe -command 'cd \\\"" + path + "\\\"; start-process \\\"" + appName + "\\\" -Verb RunAs'";
+        string ps_command = "powershell.exe -command 'cd \\\"" + path + "\\\"; ls'";
+        string ps_command = "powershell.exe -command 'ls'";
+
+        string ps_command = "powershell.exe -command Start-Process \\\"" + word_shortcut + "\\\"";
+
+        Chuyển đổi chuỗi lệnh sang kiểu LPWSTR
+        LPSTR cmd = new char[ps_command.size() + 1];
+        strcpy(cmd, ps_command.c_str());
+
+        Khởi tạo cấu trúc STARTUPINFO và PROCESS_INFORMATION
+        STARTUPINFO si = {};
+        PROCESS_INFORMATION pi = {};
+        si.cb = sizeof(si);
+
+        Tạo tiến trình mới bằng hàm CreateProcess
+        if (CreateProcess(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
+        {
+            Đợi tiến trình con hoàn thành và giải phóng tài nguyên
+            WaitForSingleObject(pi.hProcess, INFINITE);
+            cout << "Done" << endl;
+            cout << "enter any key to exit" << endl;
+            getchar();
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+        }
+        else
+        {
+            cout << "Error launching PowerShell cmdlet\n";
+            return 1;
+        }
+
+
+
+
+*/
