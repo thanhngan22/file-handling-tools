@@ -21,7 +21,7 @@ map<string, string> readFolder(string path)
             string filename = ent->d_name;
             if (filename.find(".lnk") != string::npos)
             {
-                result.emplace(filename.substr(0, filename.find(".lnk")), path);
+                result.emplace(filename.substr(0, filename.find(".lnk")), path + "\\" + filename);
             }
         }
         closedir(dir);
@@ -63,7 +63,7 @@ int main()
                     filename = ent->d_name;
                     if (filename.find(".lnk") != string::npos)
                     {
-                        locationAppStart.emplace(filename.substr(0, filename.find(".lnk")), listPaths[i]);
+                        locationAppStart.emplace(filename.substr(0, filename.find(".lnk")), listPaths[i] + "\\" + filename);
                     }
                     break;
                 }
@@ -72,90 +72,55 @@ int main()
         }
     }
 
+    // xử lý case system app như camera, setting, calculator, ...
+    // locationAppStart.emplace("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
+    system("powershell Get-AppxPackage | Select Name, PackageFamilyName > appInfo.txt");
+ 
+
+
     // list to check
-    // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++) {
-    //     cout << item->first <<
-    //     " - " << item->second << endl;
+    // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
+    // {
+    //     cout << item->first << endl; //" - " << item->second << endl;
     // }
 
-    cout << " Nhập tên ứng dụng muốn mở: ";
-    string appName;
-    getline(cin, appName);
-
-    // Xử lý
-    string path = locationAppStart[appName];
-    if (path.empty())
+    do
     {
-        for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
+        cout << " Nhập tên ứng dụng muốn mở: ";
+        string appName;
+        getline(cin, appName);
+
+        // Xử lý
+        string path;
+        auto item = locationAppStart.find(appName);
+        if (item != locationAppStart.end())
         {
-            if (item->first.find(appName) != string::npos)
+            path = item->second;
+        }
+        if (path.empty())
+        {
+            for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
             {
-                path = item->second;
-                break;
+                if (item->first.find(appName) != string::npos)
+                {
+                    path = locationAppStart[item->first];
+                    // cout << "path: " << path << endl;
+                    break;
+                }
             }
         }
-    }
 
-    if (path.empty())
-    {
-        cout << "Không tìm thấy ứng dụng" << endl;
-        return 22;
-    }
-    else
-    {
-
-
-
-        system("powershell.exe -command \"explorer 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk'\"; ");
-
-        system("pause");
-    }
-
-    return 225;
-}
-
-
-
-/*
-
-        Đường dẫn tới file shortcut Word
-        string word_shortcut = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Word.lnk";
-
-        Chuỗi lệnh PowerShell
-        string ps_command = "start-process \"" + word_shortcut + "\"";
-        string ps_command = "powershell.exe -command 'cd \\\"" + path + "\\\"; start-process \\\"" + appName + "\\\" -Verb RunAs'";
-        string ps_command = "powershell.exe -command 'cd \\\"" + path + "\\\"; ls'";
-        string ps_command = "powershell.exe -command 'ls'";
-
-        string ps_command = "powershell.exe -command Start-Process \\\"" + word_shortcut + "\\\"";
-
-        Chuyển đổi chuỗi lệnh sang kiểu LPWSTR
-        LPSTR cmd = new char[ps_command.size() + 1];
-        strcpy(cmd, ps_command.c_str());
-
-        Khởi tạo cấu trúc STARTUPINFO và PROCESS_INFORMATION
-        STARTUPINFO si = {};
-        PROCESS_INFORMATION pi = {};
-        si.cb = sizeof(si);
-
-        Tạo tiến trình mới bằng hàm CreateProcess
-        if (CreateProcess(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
+        if (path.empty())
         {
-            Đợi tiến trình con hoàn thành và giải phóng tài nguyên
-            WaitForSingleObject(pi.hProcess, INFINITE);
-            cout << "Done" << endl;
-            cout << "enter any key to exit" << endl;
-            getchar();
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
+            cout << "Không tìm thấy ứng dụng" << endl;
+            return 22;
         }
         else
         {
-            cout << "Error launching PowerShell cmdlet\n";
-            return 1;
+            string command = "powershell.exe -command \"explorer '" + path + "'\"";
+            system(command.c_str());
         }
+    } while (true);
 
-
-
-
-*/
+    return 225;
+}
