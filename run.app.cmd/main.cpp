@@ -7,6 +7,7 @@
 #include <tchar.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <cstdlib>
 
 using namespace std;
 
@@ -38,8 +39,6 @@ int main()
     vector<string> listPaths;
     listPaths.push_back("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs");
 
-    
-
     // get username
     char *username = getenv("USERNAME");
 
@@ -49,6 +48,7 @@ int main()
     }
     else
     {
+        cout << " Username: " << username << endl;
         string username_str(username);
         listPaths.push_back("C:\\Users\\" + username_str + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs");
     }
@@ -92,14 +92,28 @@ int main()
 
     // handle case system app như camera, setting, calculator, ...
     // locationAppStart.emplace("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
-    string cmd_getAppPackage = "powershell Get-AppxPackage -User " + string(username) + " | Select Name, PackageFamilyName > app.txt";
-    system("powershell Get-AppxPackage | Select Name, PackageFamilyName > appInfo.txt");
+    string cmd_getInstallLocation = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select InstallLocation | Out-File -FilePath InstallLocation.txt\"";
+    string cmd_getPackageFamilyName = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select PackageFamilyName | Out-File -FilePath PackageFamilyName.txt\"";
+
+    int result = system(cmd_getInstallLocation.c_str());
+
+    if (result != 0)
+    {
+        std::cerr << "Failed to save apps list." << std::endl;
+    }
+
+    result = system(cmd_getPackageFamilyName.c_str());
+
+    if (result != 0)
+    {
+        std::cerr << "Failed to save apps list." << std::endl;
+    }
 
     // list to check
-    for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
-    {
-        cout << item->first << endl; //" - " << item->second << endl;
-    }
+    // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
+    // {
+    //     cout << item->first << endl; //" - " << item->second << endl;
+    // }
 
     do
     {
