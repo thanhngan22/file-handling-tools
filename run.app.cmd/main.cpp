@@ -6,6 +6,7 @@
 #include <map>
 #include <tchar.h>
 #include <shellapi.h>
+#include <shlobj.h>
 
 using namespace std;
 
@@ -33,13 +34,26 @@ int main()
 {
     SetConsoleOutputCP(65001);
 
-    // khởi tạo
+    // init path to apps location (default path of windows)
     vector<string> listPaths;
     listPaths.push_back("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs");
-    listPaths.push_back("C:\\Users\\LENOVO\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs");
-    listPaths.push_back("C:\\Users\\Public\\Desktop");
 
-    // lấy tất cả file đuôi .lnk lưu map<app name, path>
+    
+
+    // get username
+    char *username = getenv("USERNAME");
+
+    if (username == NULL)
+    {
+        cout << "Failed to get username from environment variable." << endl;
+    }
+    else
+    {
+        string username_str(username);
+        listPaths.push_back("C:\\Users\\" + username_str + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs");
+    }
+
+    // get inf of shortcut app in start menu -> map<name app, path>
     map<string, string> locationAppStart;
     DIR *dir;
     struct dirent *ent;
@@ -70,27 +84,30 @@ int main()
             }
             closedir(dir);
         }
+        else
+        {
+            cout << "Not found path " << listPaths[i] << endl;
+        }
     }
 
-    // xử lý case system app như camera, setting, calculator, ...
+    // handle case system app như camera, setting, calculator, ...
     // locationAppStart.emplace("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
+    string cmd_getAppPackage = "powershell Get-AppxPackage -User " + string(username) + " | Select Name, PackageFamilyName > app.txt";
     system("powershell Get-AppxPackage | Select Name, PackageFamilyName > appInfo.txt");
- 
-
 
     // list to check
-    // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
-    // {
-    //     cout << item->first << endl; //" - " << item->second << endl;
-    // }
+    for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
+    {
+        cout << item->first << endl; //" - " << item->second << endl;
+    }
 
     do
     {
-        cout << " Nhập tên ứng dụng muốn mở: ";
+        cout << " Enter name of an app: ";
         string appName;
         getline(cin, appName);
 
-        // Xử lý
+        // handle
         string path;
         auto item = locationAppStart.find(appName);
         if (item != locationAppStart.end())
@@ -112,7 +129,7 @@ int main()
 
         if (path.empty())
         {
-            cout << "Không tìm thấy ứng dụng" << endl;
+            cout << "Not found " << appName << " in your computer." << endl;
             return 22;
         }
         else
