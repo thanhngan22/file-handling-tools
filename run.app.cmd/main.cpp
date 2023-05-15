@@ -41,6 +41,22 @@ string toLower(string s)
     return s;
 }
 
+string standardize(string name)
+{
+    string result = name;
+    int start = 0;
+    while (result[start] == ' ')
+    {
+        start++;
+    }
+    int end = name.length() - 1;
+    while (result[end] == ' ')
+    {
+        end--;
+    }
+    return result.substr(start, end - start + 1);
+}
+
 int main()
 {
     SetConsoleOutputCP(65001);
@@ -270,6 +286,8 @@ int main()
         cout << "\nNhập tên 1 ứng dụng đã được cài đặt trên máy: ";
         string appName;
         getline(cin, appName);
+        appName = standardize(appName);
+        // cout << "appName: " << appName << endl;
 
         // handle
         string path;
@@ -302,11 +320,18 @@ int main()
                     break;
                 }
             }
+            if (path.empty())
+            {
+                cout << "Không tìm thấy ứng dụng " << appName << " trên máy" << endl;
+                continue;
+            }
+            cout << "Path: " << path << endl;
             string command = "powershell.exe -command \"explorer 'shell:AppsFolder\\" + path + "'\"";
             system(command.c_str());
         }
         else
         {
+            cout << "Path: " << path << endl;
             string command = "powershell.exe -command \"explorer '" + path + "'\"";
             system(command.c_str());
         }
