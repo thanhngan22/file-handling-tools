@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include <shlobj.h>
 #include <cstdlib>
+#include <fstream>
 
 using namespace std;
 
@@ -86,35 +87,158 @@ int main()
         }
         else
         {
-            cout << "Not found path " << listPaths[i] << endl;
+            cout << "Not found path start menu " << listPaths[i] << endl;
         }
     }
+
+    // // list to check
+    // cout << "List app found in Start Menu: " << endl;
+    // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
+    // {
+    //     cout << item->first << endl; //" - " << item->second << endl;
+    // }
 
     // handle case system app như camera, setting, calculator, ...
     // locationAppStart.emplace("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
     string cmd_getInstallLocation = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select InstallLocation | Out-File -FilePath InstallLocation.txt\"";
     string cmd_getPackageFamilyName = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select PackageFamilyName | Out-File -FilePath PackageFamilyName.txt\"";
 
-    int result = system(cmd_getInstallLocation.c_str());
+    int result = system(cmd_getInstallLocation.c_str()) && system(cmd_getPackageFamilyName.c_str());
 
     if (result != 0)
     {
         std::cerr << "Failed to save apps list." << std::endl;
     }
 
-    result = system(cmd_getPackageFamilyName.c_str());
+    // read file InstallLocation.txt and PackageFamilyName.txt, then get name and path save to map <K-V>
+    map<string, string> locationAppSystem;
+    ifstream fileLocation("InstallLocation.txt");
+    ifstream filePackage("PackageFamilyName.txt");
 
-    if (result != 0)
+    if (!fileLocation || !filePackage)
     {
-        std::cerr << "Failed to save apps list." << std::endl;
+        cout << "Unable to open file";
+    }
+    else
+    {
+        string lineLocation;
+        string lineName;
+
+        // ignore 3 first line
+        for (int i = 0; i < 3; i++)
+        {
+            getline(fileLocation, lineLocation);
+            getline(filePackage, lineName);
+        }
+
+        while (getline(fileLocation, lineLocation) && getline(filePackage, lineName))
+        {
+            // cout << lineLocation << endl;
+            // cout << lineName << endl;
+            if (lineLocation == "" || lineName == "")
+            {
+                continue;
+            }
+            locationAppSystem.emplace(lineName.substr(0, lineName.find(" ")), lineLocation);
+        }
+    }
+    // list 
+    for (auto it = locationAppSystem.begin(); it != locationAppSystem.end(); it++)
+    {
+        cout << it->first << " - " << it->second << endl;
     }
 
-    // list to check
-    // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
+    // // test 
+    // string test = "C:\\Windows\\PrintDialog";
+    // if ((dir = opendir(test.c_str())) != NULL)
     // {
-    //     cout << item->first << endl; //" - " << item->second << endl;
+    //     cout << "You can do it" << endl;
+    // }
+    // else
+    // {
+    //     cout << "You need permission" << test << endl;
     // }
 
+    map<string, string> appSystem; // to store app system with <name and packageFamilyName with id app>
+
+    // go to install location and find appxmanifest.xml
+    for (auto item = locationAppSystem.begin(); item != locationAppSystem.end(); item++)
+    {
+        cout << "path: " << item->second << endl;
+        cout << "path cstr: " << item->second.c_str() << endl;
+        if ((dir = opendir(item->second.c_str())) != NULL)
+        {
+            while ((ent = readdir(dir)) != NULL)
+            {
+                string filename = ent->d_name;
+                if (filename == "AppxManifest.xml" || filename == "appxmanifest.xml")
+                {
+                    /*  read file manifest
+                        1. if not found Application Id= and Excutable= then continue
+                        2. if found:
+                             name app = name of executable file ignore .exe
+                            packageFamilyName = packageFamilyName + ! + Application Id
+                    */
+
+                    ifstream fileManifest(item->second + "\\" + filename);
+                    if (!fileManifest)
+                    {
+                        cout << "Unable to open file";
+                    }
+                    else
+                    {
+                        string line;
+                        string nameApp;
+                        string packageFamilyName;
+                        string applicationId;
+
+                        while (getline(fileManifest, line))
+                        {
+                            if (line.find("Application Id=") != string::npos)
+                            {
+                                applicationId = line.substr(line.find("Application Id=") + 16);
+                                applicationId = applicationId.substr(0, applicationId.find("\""));
+                                // cout << "ID: " << applicationId << endl;
+                            }
+
+                            if (line.find("Executable=") != string::npos)
+                            {
+                                nameApp = line.substr(line.find("Executable=") + 11);
+                                nameApp = nameApp.substr(0, nameApp.find(".exe"));
+                                // cout << "Name: " << nameApp << endl;
+                            }
+
+                            if (!applicationId.empty() && !nameApp.empty())
+                            {
+                                break;
+                            }
+                        }
+
+                        if (applicationId.empty() || nameApp.empty())
+                        {
+                            continue;
+                        }
+
+                        packageFamilyName = item->first + "!" + applicationId;
+                        appSystem.emplace(nameApp, packageFamilyName);
+                    }
+                }
+            }
+            closedir(dir);
+        } else {
+            cout << "Not found path system " << item->second.c_str() << endl;
+        }
+    }
+    // list to check
+    cout << "List app found in System: " << endl;
+    for (auto item = appSystem.begin(); item != appSystem.end(); item++)
+    {
+        cout << item->first << endl; cout << " - " << item->second << endl;
+    }
+
+
+
+    // main 
     do
     {
         cout << " Enter name of an app: ";
