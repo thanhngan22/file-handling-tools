@@ -32,19 +32,10 @@ map<string, string> readFolder(string path)
     return result;
 }
 
-bool isStringSpace(string str)
+string toLower(string s)
 {
-    for (int i = 0; i < str.length(); i++)
+    for (int i = 0; i < s.length(); i++)
     {
-        if (str[i] != ' ' || str[i] != '\n' || str[i] != '\t' || str[i] != '\r' || str[i] != '\v' || str[i] != '\f') {
-            return false;
-        }
-    }
-    return true;
-}
-
-string toLower(string s) {
-    for (int i = 0; i < s.length(); i++) {
         s[i] = tolower(s[i]);
     }
     return s;
@@ -54,11 +45,24 @@ int main()
 {
     SetConsoleOutputCP(65001);
 
-
-
     // init path to apps location (default path of windows)
     vector<string> listPaths;
-    listPaths.push_back("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs");
+
+    WCHAR path_common[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_COMMON_PROGRAMS, NULL, 0, path_common)))
+    {
+        // std::wcout << path_common;
+    }
+    else
+    {
+        std::cerr << "Failed to get path to Start Menu\\Programs folder.";
+    }
+
+    // convert path_common to string
+    wstring ws(path_common);
+    string path_common_str(ws.begin(), ws.end());
+
+    listPaths.push_back(path_common_str);
 
     // get username
     char *username = getenv("USERNAME");
@@ -112,27 +116,28 @@ int main()
     }
 
     // // list to check
-    // cout << "List app found in Start Menu: " << endl;
+    // cout << "\nList app found in Start Menu: " << endl;
     // for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
     // {
     //     cout << item->first << endl; //" - " << item->second << endl;
     // }
 
     // handle case system app như camera, setting, calculator, ...
-    // locationAppStart.emplace("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
     string cmd_getInstallLocation = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select InstallLocation | Export-Csv -Path InstallLocation.csv\"";
     string cmd_getPackageFamilyName = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select PackageFamilyName | Export-Csv -Path PackageFamilyName.csv\"";
 
     int result = system(cmd_getInstallLocation.c_str());
     if (result != 0)
     {
-        std::cerr << "Failed to save apps list " << "InstallLocation.csv" << std::endl;
+        std::cerr << "Failed to save apps list "
+                  << "InstallLocation.csv" << std::endl;
     }
-    result =  system(cmd_getPackageFamilyName.c_str());
+    result = system(cmd_getPackageFamilyName.c_str());
 
     if (result != 0)
     {
-        std::cerr << "Failed to save apps list " << "PackageFamilyName.csv" << std::endl; 
+        std::cerr << "Failed to save apps list "
+                  << "PackageFamilyName.csv" << std::endl;
     }
 
     // read file InstallLocation.txt and PackageFamilyName.txt, then get name and path save to map <K-V>
@@ -142,7 +147,10 @@ int main()
 
     if (!fileLocation || !filePackage)
     {
-        cout << "Unable to open file " << " InstallLocation.csv" << " or " << "PackageFamilyName.csv" << endl;
+        cout << "Unable to open file "
+             << " InstallLocation.csv"
+             << " or "
+             << "PackageFamilyName.csv" << endl;
     }
     else
     {
@@ -161,15 +169,13 @@ int main()
 
         while (getline(fileLocation, lineLocation) && getline(filePackage, lineName))
         {
-            // cout << lineLocation << endl;
-            // cout << lineName << endl;
-            if (lineLocation == "" || lineName == "" || isStringSpace(lineLocation) || isStringSpace(lineName))
+            if (lineLocation == "" || lineName == "")
             {
-                cout << "Empty line" << endl;
+                // cout << "Empty line" << endl;
                 continue;
             }
             locationAppSystem.emplace(lineName.substr(0, lineName.find(" ")), lineLocation);
-            // cout << "When reading: " << lineName.substr(0, lineName.find(" ")) << " - " << lineLocation << endl;
+            // cout << lineName.substr(0, lineName.find(" ")) << " - " << lineLocation << endl;
         }
     }
     // close file
@@ -179,23 +185,6 @@ int main()
     // remove files
     remove("InstallLocation.csv");
     remove("PackageFamilyName.csv");
-
-    // // list 
-    // for (auto it = locationAppSystem.begin(); it != locationAppSystem.end(); it++)
-    // {
-    //     cout << "after assign: " << it->first << " - " << it->second << endl;
-    // }
-
-    // // test 
-    // string test = "C:\\Windows\\PrintDialog";
-    // if ((dir = opendir(test.c_str())) != NULL)
-    // {
-    //     cout << "You can do it" << endl;
-    // }
-    // else
-    // {
-    //     cout << "You need permission" << test << endl;
-    // }
 
     map<string, string> appSystem; // to store app system with <name and packageFamilyName with id app>
 
@@ -220,7 +209,7 @@ int main()
                     ifstream fileManifest(item->second.substr(1, item->second.size() - 2) + "\\" + filename);
                     if (!fileManifest)
                     {
-                        cout << "Unable to open file " << item->second.substr(1, item->second.size() - 2) + "\\" + filename << endl; 
+                        cout << "Unable to open file " << item->second.substr(1, item->second.size() - 2) + "\\" + filename << endl;
                     }
                     else
                     {
@@ -262,21 +251,23 @@ int main()
                 }
             }
             closedir(dir);
-        } else {
+        }
+        else
+        {
             cout << "Not found path system " << item->second.c_str() << endl;
         }
     }
     // // list to check
-    // cout << "List app found in System: " << endl;
+    // cout << "\n\nList app found in System: " << endl;
     // for (auto item = appSystem.begin(); item != appSystem.end(); item++)
     // {
-    //     cout << item->first  << " - " << item->second << endl;
+    //     cout << item->first << endl;
     // }
 
-    // main 
+    // main
     do
     {
-        cout << " Enter name of an app: ";
+        cout << "\nNhập tên 1 ứng dụng đã được cài đặt trên máy: ";
         string appName;
         getline(cin, appName);
 
@@ -291,38 +282,27 @@ int main()
         {
             for (auto item = locationAppStart.begin(); item != locationAppStart.end(); item++)
             {
-                // if (item->first.find(appName) != string::npos)
-                // {
-                //     path = locationAppStart[item->first];
-                //     // cout << "path: " << path << endl;
-                //     break;
-                // }
                 if (toLower(item->second).find(toLower(appName)) != string::npos)
                 {
                     path = locationAppStart[item->first];
                     // cout << "path: " << path << endl;
                     break;
                 }
-
             }
         }
 
         if (path.empty())
         {
             // case app system
-            for (auto it = appSystem.begin(); it != appSystem.end(); it++) {
-                // if (it->first.find(appName) != string::npos) {
-                //     path = it->second;
-                //     break;
-                // }
-                if (toLower(it->first).find(toLower(appName)) != string::npos) {
+            for (auto it = appSystem.begin(); it != appSystem.end(); it++)
+            {
+                if (toLower(it->first).find(toLower(appName)) != string::npos)
+                {
                     path = it->second;
                     break;
                 }
             }
             string command = "powershell.exe -command \"explorer 'shell:AppsFolder\\" + path + "'\"";
-            // cout << "command: " << command << endl;
-            // cout << "command cstr: " << command.c_str() << endl;
             system(command.c_str());
         }
         else
@@ -331,9 +311,6 @@ int main()
             system(command.c_str());
         }
     } while (true);
-
-
-
 
     return 225;
 }
