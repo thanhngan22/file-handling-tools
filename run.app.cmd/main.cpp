@@ -32,6 +32,17 @@ map<string, string> readFolder(string path)
     return result;
 }
 
+bool isStringSpace(string str)
+{
+    for (int i = 0; i < str.length(); i++)
+    {
+        if (str[i] != ' ' || str[i] != '\n' || str[i] != '\t' || str[i] != '\r' || str[i] != '\v' || str[i] != '\f') {
+            return false;
+        }
+    }
+    return true;
+}
+
 int main()
 {
     SetConsoleOutputCP(65001);
@@ -100,10 +111,11 @@ int main()
 
     // handle case system app như camera, setting, calculator, ...
     // locationAppStart.emplace("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
-    string cmd_getInstallLocation = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select InstallLocation | Out-File -FilePath InstallLocation.txt\"";
-    string cmd_getPackageFamilyName = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select PackageFamilyName | Out-File -FilePath PackageFamilyName.txt\"";
+    string cmd_getInstallLocation = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select InstallLocation | Export-Csv -Path InstallLocation.csv\"";
+    string cmd_getPackageFamilyName = "powershell.exe -Command \"Get-AppxPackage -User " + string(username) + " | Select PackageFamilyName | Export-Csv -Path PackageFamilyName.csv\"";
 
     int result = system(cmd_getInstallLocation.c_str()) && system(cmd_getPackageFamilyName.c_str());
+    // int result =  system(cmd_getPackageFamilyName.c_str());
 
     if (result != 0)
     {
@@ -112,8 +124,8 @@ int main()
 
     // read file InstallLocation.txt and PackageFamilyName.txt, then get name and path save to map <K-V>
     map<string, string> locationAppSystem;
-    ifstream fileLocation("InstallLocation.txt");
-    ifstream filePackage("PackageFamilyName.txt");
+    ifstream fileLocation("InstallLocation.csv");
+    ifstream filePackage("PackageFamilyName.csv");
 
     if (!fileLocation || !filePackage)
     {
@@ -124,8 +136,11 @@ int main()
         string lineLocation;
         string lineName;
 
+        fileLocation.seekg(0, ios::beg);
+        filePackage.seekg(0, ios::beg);
+
         // ignore 3 first line
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
         {
             getline(fileLocation, lineLocation);
             getline(filePackage, lineName);
@@ -135,18 +150,24 @@ int main()
         {
             // cout << lineLocation << endl;
             // cout << lineName << endl;
-            if (lineLocation == "" || lineName == "")
+            if (lineLocation == "" || lineName == "" || isStringSpace(lineLocation) || isStringSpace(lineName))
             {
+                cout << "Empty line" << endl;
                 continue;
             }
             locationAppSystem.emplace(lineName.substr(0, lineName.find(" ")), lineLocation);
+            // cout << "When reading: " << lineName.substr(0, lineName.find(" ")) << " - " << lineLocation << endl;
         }
     }
-    // list 
-    for (auto it = locationAppSystem.begin(); it != locationAppSystem.end(); it++)
-    {
-        cout << it->first << " - " << it->second << endl;
-    }
+    // close file
+    fileLocation.close();
+    filePackage.close();
+
+    // // list 
+    // for (auto it = locationAppSystem.begin(); it != locationAppSystem.end(); it++)
+    // {
+    //     cout << "after assign: " << it->first << " - " << it->second << endl;
+    // }
 
     // // test 
     // string test = "C:\\Windows\\PrintDialog";
@@ -164,10 +185,9 @@ int main()
     // go to install location and find appxmanifest.xml
     for (auto item = locationAppSystem.begin(); item != locationAppSystem.end(); item++)
     {
-        cout << "path: " << item->second << endl;
-        cout << "path cstr: " << item->second.c_str() << endl;
-        if ((dir = opendir(item->second.c_str())) != NULL)
+        if ((dir = opendir((item->second.substr(1, item->second.size() - 2).c_str()))) != NULL)
         {
+            cout << "\nOpen folder: " << item->second << endl;
             while ((ent = readdir(dir)) != NULL)
             {
                 string filename = ent->d_name;
@@ -180,7 +200,7 @@ int main()
                             packageFamilyName = packageFamilyName + ! + Application Id
                     */
 
-                    ifstream fileManifest(item->second + "\\" + filename);
+                    ifstream fileManifest(item->second.substr(1, item->second.size() - 2) + "\\" + filename);
                     if (!fileManifest)
                     {
                         cout << "Unable to open file";
@@ -219,7 +239,7 @@ int main()
                             continue;
                         }
 
-                        packageFamilyName = item->first + "!" + applicationId;
+                        packageFamilyName = item->first.substr(1, item->first.size() - 2) + "!" + applicationId;
                         appSystem.emplace(nameApp, packageFamilyName);
                     }
                 }
@@ -233,10 +253,8 @@ int main()
     cout << "List app found in System: " << endl;
     for (auto item = appSystem.begin(); item != appSystem.end(); item++)
     {
-        cout << item->first << endl; cout << " - " << item->second << endl;
+        cout << item->first  << " - " << item->second << endl;
     }
-
-
 
     // main 
     do
@@ -267,8 +285,17 @@ int main()
 
         if (path.empty())
         {
-            cout << "Not found " << appName << " in your computer." << endl;
-            return 22;
+            // case app system
+            for (auto it = appSystem.begin(); it != appSystem.end(); it++) {
+                if (it->first.find(appName) != string::npos) {
+                    path = it->second;
+                    break;
+                }
+            }
+            string command = "powershell.exe -command \"explorer 'shell:AppsFolder\\" + path + "'\"";
+            cout << "command: " << command << endl;
+            cout << "command cstr: " << command.c_str() << endl;
+            system(command.c_str());
         }
         else
         {
